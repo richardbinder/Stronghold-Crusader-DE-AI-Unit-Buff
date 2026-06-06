@@ -29,7 +29,7 @@
                 <TextBox Grid.Row="0" Grid.Column="2"
                          Width="80"
                          Margin="0,5"
-                         Text="{Binding HpMultiplierPercent, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
+                         Text="{Binding HpMultiplier, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
                          Foreground="White"
                          Background="#333355"
                          BorderBrush="#555577"
@@ -37,14 +37,14 @@
                          ui:KeyboardCaptureBinding.Enabled="True"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="3"
-                           Text=" %"
+                           Text=" x"
                            Foreground="White"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Left"
                            Margin="0"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="2"
-                           Text="1% - 10,000%"
+                           Text="0.01 - 100.0"
                            Foreground="White"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Left"
@@ -57,7 +57,7 @@
                        Margin="0,5"
                        FontSize="12"/>
 
-            <TextBlock Text="The HP multiplier affects all AI troops. 100% corresponds to the default Unit HP."
+            <TextBlock Text="The HP multiplier affects all AI troops. 1.0 corresponds to the default Unit HP."
                        Foreground="White"
                        Margin="0,5"
                        FontSize="12"/>
@@ -67,7 +67,7 @@
                        Margin="0,5"
                        FontSize="12"/>
 
-            <TextBlock Text="Example: Setting the multiplier to 300% triples the HP of all AI units in the next game."
+            <TextBlock Text="Example: Setting the multiplier to 3.0 triples the HP of all AI units."
                        Foreground="White"
                        Margin="0,5"
                        FontSize="12"/>
