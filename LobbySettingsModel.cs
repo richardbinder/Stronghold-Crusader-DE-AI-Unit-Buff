@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Globalization;
 using SHCDESE.API.Components.Network;
 using SHCDESE.ViewModels;
 
@@ -18,6 +19,8 @@ namespace AIUnitBuff {
         private bool _customizeMultipliers;
         private float _hpMultiplier = Constants.DefaultHpMultiplier;
         private float _dmgMultiplier = Constants.DefaultDmgMultiplier;
+        private string _hpMultiplierText = Constants.DefaultHpMultiplier.ToString("0.0", CultureInfo.InvariantCulture);
+        private string _dmgMultiplierText = Constants.DefaultDmgMultiplier.ToString("0.0", CultureInfo.InvariantCulture);
 
         [SyncHostOnly]
         public int SelectedDifficultyIndex
@@ -73,6 +76,25 @@ namespace AIUnitBuff {
                     return;
 
                 _hpMultiplier = clamped;
+                _hpMultiplierText = clamped.ToString("0.###", CultureInfo.InvariantCulture);
+                OnPropertyChanged(nameof(HpMultiplier));
+                OnPropertyChanged(nameof(HpMultiplierText));
+                OnPropertyChanged(nameof(EffectiveHpMultiplier));
+            }
+        }
+
+        public string HpMultiplierText
+        {
+            get => _hpMultiplierText;
+            set
+            {
+                if (!TrySetMultiplierText(value, nameof(HpMultiplierText), ref _hpMultiplierText, Constants.ClampHpMultiplier, Constants.DefaultHpMultiplier, out bool updateMultiplier, out float clamped))
+                    return;
+
+                if (updateMultiplier)
+                    _hpMultiplier = clamped;
+
+                OnPropertyChanged(nameof(HpMultiplierText));
                 OnPropertyChanged(nameof(HpMultiplier));
                 OnPropertyChanged(nameof(EffectiveHpMultiplier));
             }
@@ -90,6 +112,25 @@ namespace AIUnitBuff {
                     return;
 
                 _dmgMultiplier = clamped;
+                _dmgMultiplierText = clamped.ToString("0.###", CultureInfo.InvariantCulture);
+                OnPropertyChanged(nameof(DmgMultiplier));
+                OnPropertyChanged(nameof(DmgMultiplierText));
+                OnPropertyChanged(nameof(EffectiveDmgMultiplier));
+            }
+        }
+
+        public string DmgMultiplierText
+        {
+            get => _dmgMultiplierText;
+            set
+            {
+                if (!TrySetMultiplierText(value, nameof(DmgMultiplierText), ref _dmgMultiplierText, Constants.ClampDmgMultiplier, Constants.DefaultDmgMultiplier, out bool updateMultiplier, out float clamped))
+                    return;
+
+                if (updateMultiplier)
+                    _dmgMultiplier = clamped;
+
+                OnPropertyChanged(nameof(DmgMultiplierText));
                 OnPropertyChanged(nameof(DmgMultiplier));
                 OnPropertyChanged(nameof(EffectiveDmgMultiplier));
             }
@@ -104,6 +145,58 @@ namespace AIUnitBuff {
         private void OnMultiplierSourceChanged() {
             OnPropertyChanged(nameof(EffectiveHpMultiplier));
             OnPropertyChanged(nameof(EffectiveDmgMultiplier));
+        }
+
+        private bool TrySetMultiplierText(
+            string value,
+            string propertyName,
+            ref string backingField,
+            Func<float, float> clamp,
+            float defaultValue,
+            out bool updateMultiplier,
+            out float clamped
+        ) {
+            value ??= string.Empty;
+            updateMultiplier = false;
+            clamped = 0.0f;
+
+            if (value == string.Empty || value == ".") {
+                clamped = defaultValue;
+                backingField = defaultValue.ToString("0.0", CultureInfo.InvariantCulture);
+                updateMultiplier = true;
+                return true;
+            }
+
+            if (!IsDecimalText(value)) {
+                OnPropertyChanged(propertyName);
+                return false;
+            }
+
+            if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed))
+                return true;
+
+            clamped = clamp(parsed);
+            backingField = parsed == clamped || value == "0" || value.EndsWith(".")
+                ? value
+                : clamped.ToString("0.###", CultureInfo.InvariantCulture);
+            updateMultiplier = true;
+            return true;
+        }
+
+        private static bool IsDecimalText(string value) {
+            int decimalPoints = 0;
+
+            foreach (char c in value) {
+                if (c >= '0' && c <= '9')
+                    continue;
+
+                if (c == '.' && decimalPoints++ == 0)
+                    continue;
+
+                return false;
+            }
+
+            return true;
         }
     }
 }

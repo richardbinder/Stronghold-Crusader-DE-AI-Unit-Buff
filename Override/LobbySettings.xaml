@@ -6,22 +6,21 @@
 
             <TextBlock Text="This mod buffs all AI troops with customizable difficulty."
                        Foreground="White"
-                       Margin="0,5"
-                       FontSize="12"/>
-            
-            <TextBlock Text="AI Difficulty"
-                       Foreground="White"
-                       Margin="0,5"
-                       FontSize="16"/>
+                       Margin="0,5"/>
+
+            <TextBlock Text="AI DIFFICULTY"
+                       Foreground="#77AAFF" 
+                       FontWeight="Bold" 
+                       Margin="0,5"/>
 
             <StackPanel IsEnabled="{Binding IsPresetSelectionEnabled}">
                 <UniformGrid Columns="6" Width="Auto" Margin="0,0,0,4">
-                    <TextBlock Text="Easy" Foreground="White" TextAlignment="Center" FontSize="12"/>
+                    <TextBlock Text="Easy" Foreground="White" TextAlignment="Left" FontSize="12"/>
                     <TextBlock Text="Normal" Foreground="White" TextAlignment="Center" FontSize="12"/>
                     <TextBlock Text="Hard" Foreground="White" TextAlignment="Center" FontSize="12"/>
                     <TextBlock Text="Very Hard" Foreground="White" TextAlignment="Center" FontSize="12"/>
                     <TextBlock Text="Extreme" Foreground="White" TextAlignment="Center" FontSize="12"/>
-                    <TextBlock Text="Impossible" Foreground="White" TextAlignment="Center" FontSize="12"/>
+                    <TextBlock Text="Impossible" Foreground="White" TextAlignment="Right" FontSize="12"/>
                 </UniformGrid>
 
                 <Slider Width="Auto"
@@ -33,15 +32,17 @@
                         TickPlacement="BottomRight"
                         Value="{Binding SelectedDifficultySliderValue, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
 
-                <UniformGrid Columns="6" Width="450" Margin="0,5,0,10">
-                    <TextBlock Text="Dmg: 0.5x&#x0a;HP: 0.5x" Foreground="White" TextAlignment="Center" FontSize="12"/>
+                <UniformGrid Columns="6" Width="Auto" Margin="0,5,0,10">
+                    <TextBlock Text="Dmg: 0.5x&#x0a;HP: 0.5x" Foreground="White" TextAlignment="Left" FontSize="12"/>
                     <TextBlock Text="Dmg: 1.0x&#x0a;HP: 1.0x" Foreground="White" TextAlignment="Center" FontSize="12"/>
                     <TextBlock Text="Dmg: 2.0x&#x0a;HP: 2.0x" Foreground="White" TextAlignment="Center" FontSize="12"/>
                     <TextBlock Text="Dmg: 5.0x&#x0a;HP: 5.0x" Foreground="White" TextAlignment="Center" FontSize="12"/>
                     <TextBlock Text="Dmg: 10.0x&#x0a;HP: 10.0x" Foreground="White" TextAlignment="Center" FontSize="12"/>
-                    <TextBlock Text="Dmg: 50.0x&#x0a;HP: 50.0x" Foreground="White" TextAlignment="Center" FontSize="12"/>
+                    <TextBlock Text="Dmg: 50.0x&#x0a;HP: 50.0x" Foreground="White" TextAlignment="Right" FontSize="12"/>
                 </UniformGrid>
             </StackPanel>
+
+            <Separator Background="#444466" Margin="0,10"/>
 
             <CheckBox Content="Customize Multipliers"
                       IsChecked="{Binding CustomizeMultipliers, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
@@ -49,9 +50,32 @@
                       Margin="0,8,0,5"/>
 
             <Grid IsEnabled="{Binding CustomizeMultipliers}">
+                <Grid.Style>
+                    <Style TargetType="{x:Type Grid}">
+                        <Setter Property="Opacity" Value="1.0"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Grid.Resources>
+                    <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#777788"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+
+                </Grid.Resources>
+
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="15"/>
+                    <ColumnDefinition Width="20"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
@@ -64,77 +88,48 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0"
-                           Text="AI Unit HP"
-                           Foreground="White"
+                           Text="AI Unit HP Multiplier"
                            VerticalAlignment="Center"
                            Margin="0,5"/>
 
                 <TextBox Grid.Row="0" Grid.Column="2"
                          Width="80"
                          Margin="0,5"
-                         Text="{Binding HpMultiplier, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
-                         Foreground="White"
-                         Background="#333355"
-                         BorderBrush="#555577"
-                         Padding="4,2"
+                         Text="{Binding HpMultiplierText, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                          ui:KeyboardCaptureBinding.Enabled="True"/>
-
-                <TextBlock Grid.Row="0" Grid.Column="3"
-                           Text=" x"
-                           Foreground="White"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Left"
-                           Margin="0"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="2"
                            Text="0.01 - 100.0"
-                           Foreground="White"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Left"
                            Margin="0"
                            FontSize="10"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0"
-                           Text="AI Unit Damage"
-                           Foreground="White"
+                           Text="AI Unit Damage Multiplier"
                            VerticalAlignment="Center"
                            Margin="0,5"/>
 
                 <TextBox Grid.Row="2" Grid.Column="2"
                          Width="80"
                          Margin="0,5"
-                         Text="{Binding DmgMultiplier, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
-                         Foreground="White"
-                         Background="#333355"
-                         BorderBrush="#555577"
-                         Padding="4,2"
+                         Text="{Binding DmgMultiplierText, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                          ui:KeyboardCaptureBinding.Enabled="True"/>
-
-                <TextBlock Grid.Row="2" Grid.Column="3"
-                           Text=" x"
-                           Foreground="White"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Left"
-                           Margin="0"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="2"
                            Text="0.01 - 100.0"
-                           Foreground="White"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Left"
                            Margin="0"
                            FontSize="10"/>
             </Grid>
 
-            <TextBlock Text=""
-                       Foreground="White"
-                       Margin="0,5"
-                       FontSize="12"/>
+            <Separator Background="#444466" Margin="0,10"/>
 
-            <TextBlock Text="The multipliers stack with any other HP and Damage modifiers. In multiplayer, only the host setting is effective. Beware: Setting the multipliers too high may make Defeat inevitable :)"
+            <TextBlock Text="The multipliers stack with any other HP and Damage modifiers. In multiplayer, only the host setting is effective."
                        Foreground="White"
-                       Margin="0,5"
-                       FontSize="12"/>
+                       TextWrapping="Wrap"
+                       Margin="0,5"/>
         </StackPanel>
     </ScrollViewer>
 </Grid>

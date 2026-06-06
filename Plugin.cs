@@ -15,7 +15,7 @@ using SHCDESE.Interop;
 
 namespace AIUnitBuff {
     [BepInDependency("000shcdese", BepInDependency.DependencyFlags.HardDependency)]
-    [BepInPlugin("AIUnitBuff", "AI Unit HP Buff", "1.0.0")]
+    [BepInPlugin("AIUnitBuff", "AI Unit Buff", "1.0.0")]
     public class Plugin : BaseUnityPlugin {
         private readonly GameUnitManagerAPI UnitManager = GameUnitManagerAPI.Instance;
         private readonly GamePlayerManagerAPI PlayerManager = GamePlayerManagerAPI.Instance;
@@ -27,7 +27,7 @@ namespace AIUnitBuff {
         private void Awake() {
             _settings = new SettingsService(Config, Logger);
 
-            Logger.LogInfo("AI Unit HP Buff loaded.");
+            Logger.LogInfo("AI Unit Buff loaded.");
 
             CrusaderLibrary.Instance.LibraryLoaded += OnLibraryLoaded;
 
@@ -54,7 +54,7 @@ namespace AIUnitBuff {
             UnitR3EventHooks.OnUnitTakeMeleeDamage.Observable.Subscribe(OnUnitReceiveMeleeDmg);
             UnitR3EventHooks.OnUnitTakeProjectileDamageEx.Observable.Subscribe(OnUnitReceiveProjectileDmg);
 
-            Logger.LogInfo($"Lobby HP multiplier loaded: {_lobbySettings.EffectiveHpMultiplier}, damage multiplier loaded: {_lobbySettings.EffectiveDmgMultiplier}");
+            Logger.LogInfo($"Lobby multipliers loaded: {_lobbySettings.EffectiveHpMultiplier}, damage multiplier loaded: {_lobbySettings.EffectiveDmgMultiplier}");
         }
 
         private void OnUnitReceiveMeleeDmg(UnitTakeDamageByMeleeEventArgs e) {
@@ -145,7 +145,7 @@ namespace AIUnitBuff {
             _settings.InitFromLobby(_lobbySettings.EffectiveHpMultiplier, _lobbySettings.EffectiveDmgMultiplier);
 
             Logger.LogDebug(
-                $"Initialized save data on map start. HP multiplier={_settings.SavedHpMultiplier}, damage multiplier={_settings.SavedDmgMultiplier}"
+                $"Initialized data on map start. HP multiplier={_settings.SavedHpMultiplier}, damage multiplier={_settings.SavedDmgMultiplier}"
             );
         }
 
