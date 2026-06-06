@@ -1,31 +1,35 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Runtime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using MessagePack;
 
 namespace AIUnitHPBuff {
-    internal class SettingsService {
-        private static readonly TimeSpan DebugConfigReloadInterval = TimeSpan.FromSeconds(1);
-
+    internal class SettingsService : IDisposable {
         private readonly ConfigFile _config;
+        private readonly ManualLogSource _logger;
+        private readonly FileSystemWatcher _configWatcher;
         private SaveData _saveData = new();
-
-        private DateTime _nextDebugConfigReloadUtc = DateTime.MinValue;
+        private int _configReloadPending;
         private bool? _lastDebugConfigOverride;
         private float _lastDebugHpMultiplier = float.NaN;
 
-        public SettingsService(ConfigFile config) {
+        public SettingsService(ConfigFile config, ManualLogSource logger) {
             _config = config;
+            _logger = logger;
             Debug = LoadDebugConfig();
+            _configWatcher = CreateConfigWatcher();
+            LogDebugConfigIfChanged();
         }
 
         public DebugConfig Debug { get; }
 
-        public float EffectiveHpMultiplier =>
+        public float HpMultiplier =>
             Debug.DebugConfigOverride.Value
                 ? DebugHpMultiplier
                 : Constants.ClampHpMultiplier(_saveData.HpMultiplier);
@@ -36,8 +40,16 @@ namespace AIUnitHPBuff {
         public bool IsDebugOverrideEnabled =>
             Debug.DebugConfigOverride.Value;
 
-        public void ReloadConfig() {
-            _config.Reload();
+        public void ProcessPendingConfigReload() {
+            if (Interlocked.Exchange(ref _configReloadPending, 0) == 0)
+                return;
+
+            try {
+                _config.Reload();
+                LogDebugConfigIfChanged();
+            } catch (Exception ex) {
+                _logger.LogWarning($"Failed to reload debug config: {ex.Message}");
+            }
         }
 
         public void InitFromLobby(float lobbyHpMultiplier) {
@@ -60,6 +72,10 @@ namespace AIUnitHPBuff {
 
         public float SavedHpMultiplier => Constants.ClampHpMultiplier(_saveData.HpMultiplier);
 
+        public void Dispose() {
+            _configWatcher?.Dispose();
+        }
+
         private DebugConfig LoadDebugConfig() {
             return new DebugConfig {
                 HpMultiplier = _config.Bind(
@@ -73,26 +89,36 @@ namespace AIUnitHPBuff {
                     "Debug",
                     "EnableDebugConfigOverride",
                     false,
-                    "If true, it overrides the ingame config multipliers. Also works in the Map Editor, where it affects all units."
+                    "If true, it overrides the ingame config multipliers. Also works in the Map Editor, where it affects all troop units."
                 )
             };
         }
 
-        private void ReloadDebugConfigIfDue() {
-            DateTime now = DateTime.UtcNow;
+        private FileSystemWatcher CreateConfigWatcher() {
+            string configFilePath = _config.ConfigFilePath;
+            string directory = Path.GetDirectoryName(configFilePath);
+            string fileName = Path.GetFileName(configFilePath);
 
-            if (now < _nextDebugConfigReloadUtc)
-                return;
+            if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName))
+                return null;
 
-            _nextDebugConfigReloadUtc = now + DebugConfigReloadInterval;
+            var watcher = new FileSystemWatcher(directory, fileName) {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size
+            };
 
-            try {
-                ReloadConfig();
-            } catch (Exception ex) {
-                Logger.LogWarning($"Failed to reload debug config: {ex.Message}");
-                return;
-            }
+            watcher.Changed += MarkConfigReloadPending;
+            watcher.Created += MarkConfigReloadPending;
+            watcher.Renamed += MarkConfigReloadPending;
+            watcher.EnableRaisingEvents = true;
 
+            return watcher;
+        }
+
+        private void MarkConfigReloadPending(object sender, FileSystemEventArgs e) {
+            Interlocked.Exchange(ref _configReloadPending, 1);
+        }
+
+        private void LogDebugConfigIfChanged() {
             bool debugOverride = IsDebugOverrideEnabled;
             float debugHpMultiplier = DebugHpMultiplier;
 
@@ -102,7 +128,7 @@ namespace AIUnitHPBuff {
             _lastDebugConfigOverride = debugOverride;
             _lastDebugHpMultiplier = debugHpMultiplier;
 
-            Logger.LogDebug(
+            _logger.LogDebug(
                 $"Debug config loaded: override={debugOverride}, HP multiplier={debugHpMultiplier}"
             );
         }
