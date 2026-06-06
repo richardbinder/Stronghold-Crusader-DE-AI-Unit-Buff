@@ -3,8 +3,8 @@
     <PropertyGroup>
         <TargetFramework>net481</TargetFramework>
         <OutputType>Library</OutputType>
-        <RootNamespace>AIUnitHPBuff</RootNamespace>
-        <AssemblyName>AIUnitHPBuff</AssemblyName>
+        <RootNamespace>AIUnitBuff</RootNamespace>
+        <AssemblyName>AIUnitBuff</AssemblyName>
         <LangVersion>latest</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -63,7 +63,7 @@
     </ItemGroup>
 
     <ItemGroup>
-    <Content Include="Override\Assets\GUI\Sprites\AIUnitHPBuff.png" CopyToOutputDirectory="Always" />
+    <Content Include="Override\Assets\GUI\Sprites\AIUnitBuff.png" CopyToOutputDirectory="Always" />
     <Content Include="Override\LobbySettings.xaml" CopyToOutputDirectory="Always" />
     <Content Include="info.json" CopyToOutputDirectory="Always" />
     </ItemGroup>

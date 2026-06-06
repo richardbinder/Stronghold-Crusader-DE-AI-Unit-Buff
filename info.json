@@ -1,8 +1,8 @@
 {
-	"GUID": "AIUnitHPBuff",
+	"GUID": "AIUnitBuff",
 	"Author": "Copperazide",
 	"Name": "AI Unit HP Buff",
-	"Description": "Allows players to configure an HP multiplier for AI units. This allows you to make AI extra challenging (...or extra weak).",
+	"Description": "Allows players to configure HP and damage multipliers for AI units. This allows you to make AI extra challenging (...or extra weak).",
 	"Version": "1.0.0",
 	"SupportedGameVersions": [
 		"2.5.0.1"

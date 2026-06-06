@@ -5,17 +5,27 @@ using System.Text;
 using System.Threading.Tasks;
 using SHCDESE.Interop;
 
-namespace AIUnitHPBuff {
+namespace AIUnitBuff {
     public class Constants {
         public const float DefaultHpMultiplier = 1.0f;
+        public const float DefaultDmgMultiplier = 1.0f;
         public const float MinHpMultiplier = 0.01f;
         public const float MaxHpMultiplier = 100.0f;
+        public const float MinDmgMultiplier = 0.01f;
+        public const float MaxDmgMultiplier = 100.0f;
 
         public static float ClampHpMultiplier(float value) {
             if (float.IsNaN(value) || float.IsInfinity(value))
                 return DefaultHpMultiplier;
 
             return Math.Max(MinHpMultiplier, Math.Min(MaxHpMultiplier, value));
+        }
+
+        public static float ClampDmgMultiplier(float value) {
+            if (float.IsNaN(value) || float.IsInfinity(value))
+                return DefaultDmgMultiplier;
+
+            return Math.Max(MinDmgMultiplier, Math.Min(MaxDmgMultiplier, value));
         }
 
         public static readonly HashSet<eChimps> CivilianTypes =

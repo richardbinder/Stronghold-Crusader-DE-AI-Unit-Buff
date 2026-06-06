@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using AIUnitHPBuff;
+using AIUnitBuff;
 using BepInEx;
 using BepInEx.Configuration;
 using MessagePack;
@@ -13,9 +13,9 @@ using SHCDESE.EventAPI.MapLoader;
 using SHCDESE.EventAPI.Units;
 using SHCDESE.Interop;
 
-namespace AIUnitHPBuff {
+namespace AIUnitBuff {
     [BepInDependency("000shcdese", BepInDependency.DependencyFlags.HardDependency)]
-    [BepInPlugin("AIUnitHPBuff", "AI Unit HP Buff", "1.0.0")]
+    [BepInPlugin("AIUnitBuff", "AI Unit HP Buff", "1.0.0")]
     public class Plugin : BaseUnityPlugin {
         private readonly GameUnitManagerAPI UnitManager = GameUnitManagerAPI.Instance;
         private readonly GamePlayerManagerAPI PlayerManager = GamePlayerManagerAPI.Instance;
@@ -35,7 +35,7 @@ namespace AIUnitHPBuff {
             MapLoaderR3EventHooks.OnUnloadMap.Observable.Subscribe(OnMapUnload);
 
             ModSaveDataAPI.Instance.RegisterModDataHandler(
-                modIdentifier: "AIUnitHPBuff-savedata",
+                modIdentifier: "AIUnitBuff-savedata",
                 saveCallback: OnSave,
                 loadCallback: OnLoad
             );
@@ -46,7 +46,7 @@ namespace AIUnitHPBuff {
 
             GameXAMLManagerAPI.Instance.RegisterLobbyModSettings(
                 plugin: this,
-                modName: "AIUnitHPBuff",
+                modName: "AIUnitBuff",
                 viewModel: _lobbySettings,
                 xamlSourceFile: "LobbySettings.xaml"
             );
@@ -54,7 +54,7 @@ namespace AIUnitHPBuff {
             UnitR3EventHooks.OnUnitTakeMeleeDamage.Observable.Subscribe(OnUnitReceiveMeleeDmg);
             UnitR3EventHooks.OnUnitTakeProjectileDamageEx.Observable.Subscribe(OnUnitReceiveProjectileDmg);
 
-            Logger.LogInfo($"Lobby HP multiplier loaded: {_lobbySettings.HpMultiplier}");
+            Logger.LogInfo($"Lobby HP multiplier loaded: {_lobbySettings.EffectiveHpMultiplier}, damage multiplier loaded: {_lobbySettings.EffectiveDmgMultiplier}");
         }
 
         private void OnUnitReceiveMeleeDmg(UnitTakeDamageByMeleeEventArgs e) {
@@ -87,23 +87,26 @@ namespace AIUnitHPBuff {
             int damagedUnitOwner;
             int attackingUnitOwner;
 
-            if (!UnitManager.TryGetUnitById(defendingUnit, out GameUnit* unit)) {
+            if (!UnitManager.TryGetUnitById(defendingUnit, out GameUnit* defendingGameUnit)) {
                 // if defender doesn't exist anymore, the damage doesn't matter so we just return
                 return damage;
             } else {
                 damagedUnitOwner = UnitManager.GetOwner(defendingUnit);
+                defenderHpMultiplier = getUnitHpMultiplier(damagedUnitOwner);
             }
 
-            if (!UnitManager.TryGetUnitById(attackingUnit, out GameUnit* unit)) {
+            if (!UnitManager.TryGetUnitById(attackingUnit, out GameUnit* attackingGameUnit)) {
                 // check projectile owner if attacking unit doesnt exist anymore
                 if (!ProjectileAPI.TryGetProjectileById(projectile, out GameProjectile* proj)) {
                     // just set to default if projectile also doesn't exist anymore (not sure if this can even happen, maybe on melee attacks)
                     attackerDmgMultiplier = Constants.DefaultDmgMultiplier;
                 } else {
                     attackingUnitOwner = ProjectileAPI.GetSourcePlayer(projectile);
+                    attackerDmgMultiplier = getUnitDamageMultiplier(attackingUnitOwner);
                 }
             } else {
                 attackingUnitOwner = UnitManager.GetOwner(attackingUnit);
+                attackerDmgMultiplier = getUnitDamageMultiplier(attackingUnitOwner);
             }
 
             eChimps type = UnitManager.GetType(defendingUnit);
@@ -134,15 +137,15 @@ namespace AIUnitHPBuff {
         }
 
         private bool usesAIMultipliers(int playerId) {
-            // Debug override allows easy debugging when the setting is active, affects all troops in the map editor
-            return _settings.IsDebugOverrideEnabled || PlayerManager.IsAIPlayer(ownerId);
+            // Debug override allows easy debugging, affects all troops in the map editor
+            return _settings.IsDebugOverrideEnabled || PlayerManager.IsAIPlayer(playerId);
         }
 
         private void OnMapStart(MapStartEventArgs e) {
-            _settings.InitFromLobby(_lobbySettings.HpMultiplier);
+            _settings.InitFromLobby(_lobbySettings.EffectiveHpMultiplier, _lobbySettings.EffectiveDmgMultiplier);
 
             Logger.LogDebug(
-                $"Initialized save data on map start. HP multiplier={_settings.SavedHpMultiplier}"
+                $"Initialized save data on map start. HP multiplier={_settings.SavedHpMultiplier}, damage multiplier={_settings.SavedDmgMultiplier}"
             );
         }
 
@@ -158,7 +161,7 @@ namespace AIUnitHPBuff {
 
             byte[] bytes = _settings.Serialize();
 
-            Logger.LogDebug($"Saving: HP multiplier={_settings.SavedHpMultiplier}");
+            Logger.LogDebug($"Saving: HP multiplier={_settings.SavedHpMultiplier}, damage multiplier={_settings.SavedDmgMultiplier}");
 
             return bytes;
         }
@@ -169,7 +172,7 @@ namespace AIUnitHPBuff {
 
             _settings.Deserialize(bytes);
 
-            Logger.LogDebug($"Loaded: HP multiplier={_settings.SavedHpMultiplier}");
+            Logger.LogDebug($"Loaded: HP multiplier={_settings.SavedHpMultiplier}, damage multiplier={_settings.SavedDmgMultiplier}");
         }
     }
 }

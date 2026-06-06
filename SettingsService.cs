@@ -9,7 +9,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using MessagePack;
 
-namespace AIUnitHPBuff {
+namespace AIUnitBuff {
     internal class SettingsService : IDisposable {
         private readonly ConfigFile _config;
         private readonly ManualLogSource _logger;
@@ -18,6 +18,7 @@ namespace AIUnitHPBuff {
         private int _configReloadPending;
         private bool? _lastDebugConfigOverride;
         private float _lastDebugHpMultiplier = float.NaN;
+        private float _lastDebugDmgMultiplier = float.NaN;
 
         public SettingsService(ConfigFile config, ManualLogSource logger) {
             _config = config;
@@ -34,8 +35,16 @@ namespace AIUnitHPBuff {
                 ? DebugHpMultiplier
                 : Constants.ClampHpMultiplier(_saveData.HpMultiplier);
 
+        public float DmgMultiplier =>
+            Debug.DebugConfigOverride.Value
+                ? DebugDmgMultiplier
+                : Constants.ClampDmgMultiplier(_saveData.DmgMultiplier);
+
         public float DebugHpMultiplier =>
             Constants.ClampHpMultiplier(Debug.HpMultiplier.Value);
+
+        public float DebugDmgMultiplier =>
+            Constants.ClampDmgMultiplier(Debug.DmgMultiplier.Value);
 
         public bool IsDebugOverrideEnabled =>
             Debug.DebugConfigOverride.Value;
@@ -52,9 +61,10 @@ namespace AIUnitHPBuff {
             }
         }
 
-        public void InitFromLobby(float lobbyHpMultiplier) {
+        public void InitFromLobby(float lobbyHpMultiplier, float lobbyDmgMultiplier) {
             _saveData = new SaveData {
-                HpMultiplier = Constants.ClampHpMultiplier(lobbyHpMultiplier)
+                HpMultiplier = Constants.ClampHpMultiplier(lobbyHpMultiplier),
+                DmgMultiplier = Constants.ClampDmgMultiplier(lobbyDmgMultiplier)
             };
         }
 
@@ -71,6 +81,7 @@ namespace AIUnitHPBuff {
         }
 
         public float SavedHpMultiplier => Constants.ClampHpMultiplier(_saveData.HpMultiplier);
+        public float SavedDmgMultiplier => Constants.ClampDmgMultiplier(_saveData.DmgMultiplier);
 
         public void Dispose() {
             _configWatcher?.Dispose();
@@ -83,6 +94,13 @@ namespace AIUnitHPBuff {
                     "DebugHpMultiplier",
                     Constants.DefaultHpMultiplier,
                     "Unit HP multiplier"
+                ),
+
+                DmgMultiplier = _config.Bind(
+                    "Debug",
+                    "DebugDmgMultiplier",
+                    Constants.DefaultDmgMultiplier,
+                    "Unit damage multiplier"
                 ),
 
                 DebugConfigOverride = _config.Bind(
@@ -121,15 +139,19 @@ namespace AIUnitHPBuff {
         private void LogDebugConfigIfChanged() {
             bool debugOverride = IsDebugOverrideEnabled;
             float debugHpMultiplier = DebugHpMultiplier;
+            float debugDmgMultiplier = DebugDmgMultiplier;
 
-            if (_lastDebugConfigOverride == debugOverride && _lastDebugHpMultiplier == debugHpMultiplier)
+            if (_lastDebugConfigOverride == debugOverride &&
+                _lastDebugHpMultiplier == debugHpMultiplier &&
+                _lastDebugDmgMultiplier == debugDmgMultiplier)
                 return;
 
             _lastDebugConfigOverride = debugOverride;
             _lastDebugHpMultiplier = debugHpMultiplier;
+            _lastDebugDmgMultiplier = debugDmgMultiplier;
 
             _logger.LogDebug(
-                $"Debug config loaded: override={debugOverride}, HP multiplier={debugHpMultiplier}"
+                $"Debug config loaded: override={debugOverride}, HP multiplier={debugHpMultiplier}, damage multiplier={debugDmgMultiplier}"
             );
         }
     }
