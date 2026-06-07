@@ -6,14 +6,21 @@ using SHCDESE.ViewModels;
 namespace AIUnitBuff {
     public class LobbySettingsModel : LobbyModSettingsBaseViewModel
     {
-        private static readonly float[] DifficultyMultipliers = [
-            0.5f,
-            1.0f,
-            2.0f,
-            5.0f,
-            10.0f,
-            50.0f
+        private static readonly (string Name, float DmgMultiplier, float HpMultiplier)[] DifficultyPresets = [
+            ("Easy", 0.8f, 0.8f),
+            ("Normal", 1.0f, 1.0f),
+            ("Hard", 1.2f, 1.5f),
+            ("Very Hard", 1.3f, 1.7f),
+            ("Extreme", 1.4f, 1.9f),
+            ("Impossible", 2.0f, 3.0f)
         ];
+
+        public DifficultyLabel[] DifficultyNameLabels { get; } =
+            CreateDifficultyLabels(preset => preset.Name);
+
+        public DifficultyLabel[] DifficultyMultiplierLabels { get; } =
+            CreateDifficultyLabels(preset =>
+                $"Dmg: {preset.DmgMultiplier:0.0}x\nHP: {preset.HpMultiplier:0.0}x");
 
         private int _selectedDifficultyIndex = 1;
         private bool _customizeMultipliers;
@@ -28,7 +35,7 @@ namespace AIUnitBuff {
             get => _selectedDifficultyIndex;
             set
             {
-                int clamped = Math.Max(0, Math.Min(DifficultyMultipliers.Length - 1, value));
+                int clamped = Math.Max(0, Math.Min(DifficultyPresets.Length - 1, value));
 
                 if (_selectedDifficultyIndex == clamped)
                     return;
@@ -137,10 +144,10 @@ namespace AIUnitBuff {
         }
 
         public float EffectiveHpMultiplier =>
-            CustomizeMultipliers ? HpMultiplier : DifficultyMultipliers[SelectedDifficultyIndex];
+            CustomizeMultipliers ? HpMultiplier : DifficultyPresets[SelectedDifficultyIndex].HpMultiplier;
 
         public float EffectiveDmgMultiplier =>
-            CustomizeMultipliers ? DmgMultiplier : DifficultyMultipliers[SelectedDifficultyIndex];
+            CustomizeMultipliers ? DmgMultiplier : DifficultyPresets[SelectedDifficultyIndex].DmgMultiplier;
 
         private void OnMultiplierSourceChanged() {
             OnPropertyChanged(nameof(EffectiveHpMultiplier));
@@ -198,5 +205,38 @@ namespace AIUnitBuff {
 
             return true;
         }
+
+        private static DifficultyLabel[] CreateDifficultyLabels(Func<(string Name, float DmgMultiplier, float HpMultiplier), string> textSelector) {
+            DifficultyLabel[] labels = new DifficultyLabel[DifficultyPresets.Length];
+
+            for (int i = 0; i < DifficultyPresets.Length; i++) {
+                labels[i] = new DifficultyLabel(
+                    textSelector(DifficultyPresets[i]),
+                    GetDifficultyLabelAlignment(i)
+                );
+            }
+
+            return labels;
+        }
+
+        private static string GetDifficultyLabelAlignment(int index) {
+            if (index == 0)
+                return "Left";
+
+            if (index == DifficultyPresets.Length - 1)
+                return "Right";
+
+            return "Center";
+        }
+    }
+
+    public class DifficultyLabel {
+        public DifficultyLabel(string text, string alignment) {
+            Text = text;
+            Alignment = alignment;
+        }
+
+        public string Text { get; }
+        public string Alignment { get; }
     }
 }

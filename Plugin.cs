@@ -62,7 +62,7 @@ namespace AIUnitBuff {
                 return;
 
             try {
-                e.Damage = GetAlternatedDamage(e.AttackingUnitId, e.DamagedUnitId, -1, e.Damage);
+                e.Damage = GetModifiedMeleeDamage(e.AttackingUnitId, e.DamagedUnitId, e.Damage);
             } catch (Exception ex) {
                 Logger.LogError(ex);
             }
@@ -73,70 +73,96 @@ namespace AIUnitBuff {
                 return;
 
             try {
-                e.Damage = GetAlternatedDamage(e.AttackingUnitId, e.AttackedUnitId, e.ProjectileId, e.Damage);
+                e.Damage = GetModifiedProjectileDamage(e.AttackingUnitId, e.AttackedUnitId, e.ProjectileId, e.Damage);
             } catch (Exception ex) {
                 Logger.LogError(ex);
             }
         }
 
-        private unsafe int GetAlternatedDamage(int attackingUnit, int defendingUnit, int projectile, int damage) {
+        private unsafe int GetModifiedMeleeDamage(int attackingUnit, int defendingUnit, int damage) {
             _settings.ProcessPendingConfigReload();
 
-            float defenderHpMultiplier;
-            float attackerDmgMultiplier;
-            int damagedUnitOwner;
-            int attackingUnitOwner;
-
-            if (!UnitManager.TryGetUnitById(defendingUnit, out GameUnit* defendingGameUnit)) {
-                // if defender doesn't exist anymore, the damage doesn't matter so we just return
+            if (!TryGetUnitDamageContext(defendingUnit, out eChimps defendingUnitType, out float defenderHpMultiplier))
                 return damage;
-            } else {
-                damagedUnitOwner = UnitManager.GetOwner(defendingUnit);
-                defenderHpMultiplier = getUnitHpMultiplier(damagedUnitOwner);
+
+            if (Constants.CivilianTypes.Contains(defendingUnitType))
+                return damage;
+
+            if (!UnitManager.TryGetUnitById(attackingUnit, out GameUnit* attackingGameUnit))
+                return damage;
+
+            int attackingUnitOwner = UnitManager.GetOwner(attackingUnit);
+            float attackerDmgMultiplier = GetUnitDamageMultiplier(attackingUnitOwner);
+            eChimps attackingUnitType = UnitManager.GetType(attackingUnit);
+
+            if (damage == 0) {
+                damage = UnitManager.GetMeleeDamageFromTo(attackingUnitType, defendingUnitType);
             }
 
-            if (!UnitManager.TryGetUnitById(attackingUnit, out GameUnit* attackingGameUnit)) {
-                // check projectile owner if attacking unit doesnt exist anymore
-                if (!ProjectileAPI.TryGetProjectileById(projectile, out GameProjectile* proj)) {
-                    // just set to default if projectile also doesn't exist anymore (not sure if this can even happen, maybe on melee attacks)
-                    attackerDmgMultiplier = Constants.DefaultDmgMultiplier;
-                } else {
-                    attackingUnitOwner = ProjectileAPI.GetSourcePlayer(projectile);
-                    attackerDmgMultiplier = getUnitDamageMultiplier(attackingUnitOwner);
-                }
-            } else {
-                attackingUnitOwner = UnitManager.GetOwner(attackingUnit);
-                attackerDmgMultiplier = getUnitDamageMultiplier(attackingUnitOwner);
+            return ApplyDamageMultipliers(damage, defenderHpMultiplier, attackerDmgMultiplier);
+        }
+
+        private unsafe int GetModifiedProjectileDamage(int attackingUnit, int defendingUnit, int projectile, int damage) {
+            _settings.ProcessPendingConfigReload();
+
+            if (!TryGetUnitDamageContext(defendingUnit, out eChimps defendingUnitType, out float defenderHpMultiplier))
+                return damage;
+
+            if (Constants.CivilianTypes.Contains(defendingUnitType))
+                return damage;
+
+            float attackerDmgMultiplier = Constants.DefaultDmgMultiplier;
+
+            if (UnitManager.TryGetUnitById(attackingUnit, out GameUnit* attackingGameUnit)) {
+                int attackingUnitOwner = UnitManager.GetOwner(attackingUnit);
+                attackerDmgMultiplier = GetUnitDamageMultiplier(attackingUnitOwner);
+            } else if (ProjectileAPI.TryGetProjectileById(projectile, out GameProjectile* proj)) {
+                int attackingUnitOwner = ProjectileAPI.GetSourcePlayer(projectile);
+                attackerDmgMultiplier = GetUnitDamageMultiplier(attackingUnitOwner);
             }
 
-            eChimps type = UnitManager.GetType(defendingUnit);
+            return ApplyDamageMultipliers(damage, defenderHpMultiplier, attackerDmgMultiplier);
+        }
 
-            if (Constants.CivilianTypes.Contains(type))
+        private unsafe bool TryGetUnitDamageContext(int unitId, out eChimps unitType, out float hpMultiplier) {
+            unitType = default;
+            hpMultiplier = Constants.DefaultHpMultiplier;
+
+            if (!UnitManager.TryGetUnitById(unitId, out GameUnit* unit))
+                return false;
+
+            int owner = UnitManager.GetOwner(unitId);
+            unitType = UnitManager.GetType(unitId);
+            hpMultiplier = GetUnitHpMultiplier(owner);
+
+            return true;
+        }
+
+        private int ApplyDamageMultipliers(int damage, float defenderHpMultiplier, float attackerDmgMultiplier) {
+            if (damage <= 0)
                 return damage;
 
             float finalDmgMultiplier = 1.0f / defenderHpMultiplier * attackerDmgMultiplier;
-            int targetDamage = Math.Max(1, (int)(damage * finalDmgMultiplier));
-
-            return targetDamage;
+            return Math.Max(1, (int)(damage * finalDmgMultiplier));
         }
 
-        private float getUnitDamageMultiplier(int ownerId) {
-            if (usesAIMultipliers(ownerId)) {
+        private float GetUnitDamageMultiplier(int ownerId) {
+            if (UsesAIMultipliers(ownerId)) {
                 return _settings.DmgMultiplier;
             } else {
                 return Constants.DefaultDmgMultiplier;
             }
         }
 
-        private float getUnitHpMultiplier(int ownerId) {
-            if (usesAIMultipliers(ownerId)) {
+        private float GetUnitHpMultiplier(int ownerId) {
+            if (UsesAIMultipliers(ownerId)) {
                 return _settings.HpMultiplier;
             } else {
                 return Constants.DefaultHpMultiplier;
             }
         }
 
-        private bool usesAIMultipliers(int playerId) {
+        private bool UsesAIMultipliers(int playerId) {
             // Debug override allows easy debugging, affects all troops in the map editor
             return _settings.IsDebugOverrideEnabled || PlayerManager.IsAIPlayer(playerId);
         }
